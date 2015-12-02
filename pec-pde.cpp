@@ -1,10 +1,11 @@
-#include<iostream>
-#include<fstream>
 #include "include/template.h"
 #include "include/BasicDE.h"
 #include "pecFunction.h"
-
-class MyDE:public EA{
+#include<iostream>
+#include<fstream>
+using namespace std;
+class ParallelDE:public EA
+{
 	private:
 		//about function:f
 		Function *f;
@@ -25,7 +26,9 @@ class MyDE:public EA{
 	private:
 		void updateX(){
 			//main process
-			ASSERT(PopSize>=3);
+			vector<vector<double> >txs;
+			txs.resize(PopSize);
+
 			RandomPermutation perm(PopSize);
 			for(int i=0;i<PopSize;i++){
 				perm.generate();
@@ -41,12 +44,17 @@ class MyDE:public EA{
 						tx[j]=x[i][j];
 					}
 				}
-				double ftx=f->evaluate(&tx[0]);
-				if(ftx<fx[i]){
-					x[i]=tx;
-					fx[i]=ftx;
-					if(ftx<fx[bestI]){
-						bestI=i;
+				txs.push_back(tx);
+			}
+			for(int i=0;i<PopSize;i++){
+				{
+					double ftx=f->evaluate(&tx[0]);
+					if(ftx<fx[i]){
+						x[i]=tx;
+						fx[i]=ftx;
+						if(ftx<fx[bestI]){
+							bestI=i;
+						}
 					}
 				}
 			}
@@ -58,7 +66,7 @@ class MyDE:public EA{
 		void update(int maxGeneration){
 #define SaveData s.add(getBestFx());
 			Save s(f->getName(),"Generation","F");
-				SaveData;
+			SaveData;
 			for(int g=1;g<=maxGeneration;g++){
 				updateX();
 				SaveData;
@@ -101,34 +109,23 @@ class MyDE:public EA{
 			return out_fx;
 		}
 };
-using namespace std;
-
-#ifdef USE_MPI
-#define OMPI_IMPORTS
-#include "mpi.h"
-#endif
-
-DefFunction(MyF1,-10,10,0)
-	double res=0.0;
-	for(int i=0;i<size;i++){
-		res+=xs[i]*xs[i];
-	}
-	return res;
-EndDef
-
 int main(int argc,char *argv[]){
+	MPIHelper mpi(argc,argv);
+	Trace(mpi.getID());
+	return 0;
+}
+int old_main(int argc,char *argv[]){
 	//srand(time(NULL));
 	SearchParam param("DE.json");
-	MyDE *de=new MyDE();
-//	BasicDE *de=new BasicDE();
+	ParallelDE *de=new ParallelDE();
+	//	BasicDE *de=new BasicDE();
 	de->initParam(&param);
 	cout<<"Runing "<<de->getName()<<" "<<endl;
 	Tic::tic("begin");
 	vector<double>x;
 	double fx;
 	cout<<"FunName(MyBestF,Optima)"<<endl;
-	//Function*f=new PECFunction(param.getInt("NumDim"));
-	Function*f=new MyF1(2);
+	Function*f=new PECFunction(param.getInt("NumDim"));
 	Trace(de->getMin(f,param.getInt("MaxFEs"),x,fx));
 	Trace(de->getMax(f,param.getInt("MaxFEs"),x,fx));
 	printVec(x);

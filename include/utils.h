@@ -5,6 +5,9 @@
 #include<math.h>
 #include<sys/time.h>
 #include<unistd.h>
+#include <fstream>
+#include<iostream>
+using namespace std;
 #define MAX_BUFFER 100
 #define MATH_PI M_PI
 #define MATH_EXP M_E

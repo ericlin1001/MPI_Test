@@ -1,7 +1,9 @@
-all:*
+all:parallel
+serial:*
 	g++ -g *.cpp
 	./a.out
 
-param:
-	mpic++ -DALGORITHM=4 *.cpp
+
+parallel:*
+	mpic++ -DUSE_MPI *.cpp
 	mpirun -n 5 ./a.out

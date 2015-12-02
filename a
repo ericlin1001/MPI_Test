@@ -1,0 +1,36 @@
+cp a a.out
+mpic++ -DUSE_MPI *.cpp
+In file included from include/functions.h:5:0,
+                 from include/template.h:5,
+                 from pec-pde.cpp:10:
+include/cec14_test_func.h: In function ‘void cec14_test_func(double*, double*, int, int, int)’:
+include/cec14_test_func.h:117:28: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’, declared with attribute warn_unused_result [-Wunused-result]
+     fscanf(fpt,"%lf",&M[i]);
+                            ^
+include/cec14_test_func.h:127:28: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’, declared with attribute warn_unused_result [-Wunused-result]
+     fscanf(fpt,"%lf",&M[i]);
+                            ^
+include/cec14_test_func.h:147:33: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’, declared with attribute warn_unused_result [-Wunused-result]
+     fscanf(fpt,"%lf",&OShift[i]);
+                                 ^
+include/cec14_test_func.h:159:39: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’, declared with attribute warn_unused_result [-Wunused-result]
+      fscanf(fpt,"%lf",&OShift[i*nx+j]);
+                                       ^
+include/cec14_test_func.h:161:29: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’, declared with attribute warn_unused_result [-Wunused-result]
+     fscanf(fpt,"%*[^\n]%*c"); 
+                             ^
+include/cec14_test_func.h:165:47: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’, declared with attribute warn_unused_result [-Wunused-result]
+     fscanf(fpt,"%lf",&OShift[(cf_num-1)*nx+j]);
+                                               ^
+include/cec14_test_func.h:187:28: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’, declared with attribute warn_unused_result [-Wunused-result]
+     fscanf(fpt,"%d",&SS[i]);
+                            ^
+include/cec14_test_func.h:204:28: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’, declared with attribute warn_unused_result [-Wunused-result]
+     fscanf(fpt,"%d",&SS[i]);
+                            ^
+mpirun -n 5 ./a.out
+"hello"=hello"hello"=hello"hello"=
+
+hello
+"hello"=hello
+"hello"=hello

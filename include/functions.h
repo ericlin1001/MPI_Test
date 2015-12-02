@@ -1,6 +1,7 @@
 #ifdef FUNCTION_H
 #else
 #define FUNCTION_H
+using namespace std;
 #include "utils.h"
 #include "cec14_test_func.h"
 static double u(double x,double a,double k,double m){
@@ -275,7 +276,6 @@ class FunctionFactory{
 	public:
 		static FunctionFactory*instance;
 		virtual void init(int numDim){
-			cout<<"FunctionFactory init"<<endl;
 			fs.resize(4);
 			fs[0]=new F1(numDim);
 			fs[1]=new F3(numDim);
@@ -387,3 +387,4 @@ class EA{
 		}
 };
 #endif
+
