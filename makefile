@@ -1,9 +1,13 @@
 all:parallel
 serial:*
-	g++ -g *.cpp
+	g++ *.cpp
 	./a.out
 
 
 parallel:*
 	mpic++ -DUSE_MPI *.cpp
-	mpirun -n 5 ./a.out
+	mpirun -f machinefile -n 4 ./a.out
+
+
+clean:
+	rm *.txt

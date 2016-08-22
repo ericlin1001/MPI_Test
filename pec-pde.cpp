@@ -4,6 +4,15 @@
 #include<iostream>
 #include<fstream>
 using namespace std;
+DefFunction(MyF1,-100,100,0)
+	double res=0.0;
+	for(int i=0;i<size;i++){
+		double x=xs[i];
+		res+=x*x;
+	}
+	return res;
+EndDef
+
 class ParallelDE:public EA
 {
 	private:
@@ -22,11 +31,12 @@ class ParallelDE:public EA
 		vector<double>tx;
 		//
 		int bestI;
-		//
+		MPIHelper*mpi;
 	private:
 		void updateX(){
 			//main process
 			vector<vector<double> >txs;
+			vector<double> ftxs;
 			txs.resize(PopSize);
 
 			RandomPermutation perm(PopSize);
@@ -44,17 +54,17 @@ class ParallelDE:public EA
 						tx[j]=x[i][j];
 					}
 				}
-				txs.push_back(tx);
+				txs[i]=tx;
 			}
+			evaluatePopulation(txs,ftxs);
 			for(int i=0;i<PopSize;i++){
-				{
-					double ftx=f->evaluate(&tx[0]);
-					if(ftx<fx[i]){
-						x[i]=tx;
-						fx[i]=ftx;
-						if(ftx<fx[bestI]){
-							bestI=i;
-						}
+				vector<double>&tx=txs[i];
+				double &ftx=ftxs[i];
+				if(ftx<fx[i]){
+					x[i]=tx;
+					fx[i]=ftx;
+					if(ftx<fx[bestI]){
+						bestI=i;
 					}
 				}
 			}
@@ -74,6 +84,8 @@ class ParallelDE:public EA
 			}
 		}
 	public:
+		ParallelDE(MPIHelper *h):mpi(h){
+		}
 		void initParam(SearchParam *param){
 			PopSize=param->getInt("PopSize");
 			F=param->getDouble("F");
@@ -81,55 +93,110 @@ class ParallelDE:public EA
 			param->getBiVector("Range",range);
 			setName(param->getString("Name"));
 		}
-		virtual double getMin(Function *f,int MaxFEs,vector<double>&out_x,double &out_fx){
-			this->f=f;
-			numDim=f->getNumDim();
-			//population initializing....
-			//allocate space.
-			tx.resize(numDim);
-			x.resize(PopSize);
-			fx.resize(PopSize);
-			for(int i=0;i<PopSize;i++){
-				x[i].resize(numDim);
+		void evaluatePopulation(vector<vector<double> >&xs,vector<double>&fx){
+			fx.resize(xs.size());
+			int numSlaves=mpi->getNumProcesses()-1;
+			if(mpi->isMaster()){
+				ASSERT(numSlaves>0);
+				for(int i=0;i<xs.size();i++){
+					mpi->send(&xs[i][0],xs[i].size(),i%numSlaves+1);
+					//fx[i]=f->evaluate(&xs[i][0]);
+				}
+				for(int i=0;i<xs.size();i++){
+					mpi->recv(&fx[i],1,i%numSlaves+1);
+				}
+			}else{
+				for(int i=0;i<xs.size();i++){
+					if((i%numSlaves+1)==mpi->getID()){
+						mpi->recv(&xs[i][0],xs[i].size(),0);
+					}
+				}
+				for(int i=0;i<xs.size();i++){
+					if((i%numSlaves+1)==mpi->getID()){
+						fx[i]=f->evaluate(&xs[i][0]);
+					}
+				}
+				for(int i=0;i<xs.size();i++){
+					if((i%numSlaves+1)==mpi->getID()){
+						mpi->send(&fx[i],1,0);
+					}
+				}
 			}
-			bestI=0;
+		}
+		void calulateBestI(){
 			for(int i=0;i<PopSize;i++){
-				for(int d=0;d<numDim;d++){
-					x[i][d]=drand(range[d][0],range[d][1]);
-				} 
-				fx[i]=f->evaluate(&x[i][0]);
 				if(fx[i]<fx[bestI]){
 					bestI=i;
 				}
 			}
-			//update, main process.
-			update(MaxFEs/PopSize-1);
-			out_x=x[bestI];
-			out_fx=fx[bestI];
-			return out_fx;
+		}
+		virtual double getMin(Function *f,int MaxFEs,vector<double>&out_x,double &out_fx){
+			//if(mpi->isMaster()){
+				this->f=f;
+				numDim=f->getNumDim();
+				//population initializing....
+				//allocate space.
+				tx.resize(numDim);
+				x.resize(PopSize);
+				fx.resize(PopSize);
+				for(int i=0;i<PopSize;i++){
+					x[i].resize(numDim);
+				}
+				bestI=0;
+				for(int i=0;i<PopSize;i++){
+					for(int d=0;d<numDim;d++){
+						x[i][d]=drand(range[d][0],range[d][1]);
+					} 
+				}
+				evaluatePopulation(x,fx);
+				calulateBestI();
+				//update, main process.
+				update(MaxFEs/PopSize-1);
+				out_x=x[bestI];
+				out_fx=fx[bestI];
+				return out_fx;
+				/*
+			}else{
+				//only evaluate the f(x).
+				return 0;
+			}
+			*/
 		}
 };
 int main(int argc,char *argv[]){
-	MPIHelper mpi(argc,argv);
-	Trace(mpi.getID());
-	return 0;
-}
-int old_main(int argc,char *argv[]){
 	//srand(time(NULL));
-	SearchParam param("DE.json");
-	ParallelDE *de=new ParallelDE();
-	//	BasicDE *de=new BasicDE();
+	MPIHelper mpi(argc,argv);
+//	Save s("title","x","y");
+//	s.add(mpi.getID());
+//	s.add(100);
+//	ofstream out;
+//	out.open("abc.txt");
+//	out<<"hello from id:"<<mpi.getID()<<endl;
+//	out.close();
+	Trace(mpi.getName());
+	Trace(mpi.getID());
+}
+int odl_main(int argc,char *argv[]){
+	//srand(time(NULL));
+	MPIHelper mpi(argc,argv);
+//	SearchParam param("DE.json");
+	SearchParam param("MyF1.json");
+	ParallelDE *de=new ParallelDE(&mpi);
 	de->initParam(&param);
+	if(mpi.isMaster()){
 	cout<<"Runing "<<de->getName()<<" "<<endl;
+	}
 	Tic::tic("begin");
 	vector<double>x;
 	double fx;
 	cout<<"FunName(MyBestF,Optima)"<<endl;
-	Function*f=new PECFunction(param.getInt("NumDim"));
-	Trace(de->getMin(f,param.getInt("MaxFEs"),x,fx));
+	//Function*f=new PECFunction(param.getInt("NumDim"));
+	Function*f=new MyF1(param.getInt("NumDim"));
+	//Trace(de->getMin(f,param.getInt("MaxFEs"),x,fx));
 	Trace(de->getMax(f,param.getInt("MaxFEs"),x,fx));
-	printVec(x);
-	printf("%s(%g,%g)",f->getName(),fx,f->getFBest());
+	if(mpi.isMaster()){
+		printf("%s(%g,%g)",f->getName(),fx,f->getFBest());
+	}
 	Tic::tic("end");
 	delete de;
 	return 0;
